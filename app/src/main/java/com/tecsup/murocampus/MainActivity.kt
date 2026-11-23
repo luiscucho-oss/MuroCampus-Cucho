@@ -76,7 +76,12 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.padding(padding)
                         )
                     } else {
-                        PantallaDetalle(vm = vm, id = id, modifier = Modifier.padding(padding))
+                        PantallaDetalle(
+                            vm = vm,
+                            id = id,
+                            onBorrado = { idSeleccionado = null },
+                            modifier = Modifier.padding(padding)
+                        )
                     }
                 }
             }

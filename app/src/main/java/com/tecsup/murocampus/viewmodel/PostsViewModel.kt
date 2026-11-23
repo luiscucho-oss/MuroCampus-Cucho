@@ -37,6 +37,10 @@ class PostsViewModel(private val repo: PostRepository) : ViewModel() {
     private val _publicacion = MutableStateFlow<UiState<Post>?>(null)
     val publicacion: StateFlow<UiState<Post>?> = _publicacion.asStateFlow()
 
+    // Resultado de borrar: Exito trae el id eliminado; null = nada pendiente
+    private val _borrado = MutableStateFlow<UiState<Int>?>(null)
+    val borrado: StateFlow<UiState<Int>?> = _borrado.asStateFlow()
+
     init { cargar() }
 
     // Carga según el filtro actual: GET posts o GET posts?userId=N
@@ -60,6 +64,7 @@ class PostsViewModel(private val repo: PostRepository) : ViewModel() {
     // Pide la publicación y sus comentarios a la vez; si cualquiera falla, todo el detalle es Error
     fun abrir(id: Int) {
         trabajoDetalle?.cancel() // si se abre otra publicación, la anterior ya no interesa
+        _borrado.value = null     // un error de borrado anterior no debe verse en otra publicación
         trabajoDetalle = viewModelScope.launch {
             _detalle.value = UiState.Cargando
             val (post, comentarios) = coroutineScope {
@@ -92,5 +97,25 @@ class PostsViewModel(private val repo: PostRepository) : ViewModel() {
     // Al salir de la pantalla Crear se olvida el resultado anterior
     fun limpiarPublicacion() {
         _publicacion.value = null
+    }
+
+    // DELETE posts/{id}. JSONPlaceholder no borra de verdad, así que se quita de la lista local
+    fun borrar(id: Int) {
+        viewModelScope.launch {
+            _borrado.value = UiState.Cargando
+            repo.borrar(id)
+                .onSuccess {
+                    val actual = _lista.value
+                    if (actual is UiState.Exito) {
+                        _lista.value = UiState.Exito(actual.datos.filterNot { it.id == id })
+                    }
+                    _borrado.value = UiState.Exito(id)
+                }
+                .onFailure { _borrado.value = UiState.Error(mensajeDe(it)) }
+        }
+    }
+
+    fun limpiarBorrado() {
+        _borrado.value = null
     }
 }

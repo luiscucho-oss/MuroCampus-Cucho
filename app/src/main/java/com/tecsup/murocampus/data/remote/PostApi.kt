@@ -3,7 +3,9 @@ package com.tecsup.murocampus.data.remote
 import com.tecsup.murocampus.model.Comentario
 import com.tecsup.murocampus.model.NuevoPost
 import com.tecsup.murocampus.model.Post
+import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -29,4 +31,8 @@ interface PostApi {
     // @Body envía el objeto como JSON en el cuerpo de la petición
     @POST("posts")
     suspend fun crear(@Body nuevo: NuevoPost): Post
+
+    // DELETE responde con cuerpo vacío: Response<Unit> deja revisar el código (200, 404…)
+    @DELETE("posts/{id}")
+    suspend fun borrar(@Path("id") id: Int): Response<Unit>
 }
