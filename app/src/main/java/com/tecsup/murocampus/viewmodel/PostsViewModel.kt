@@ -27,15 +27,29 @@ class PostsViewModel(private val repo: PostRepository) : ViewModel() {
     val detalle: StateFlow<UiState<DetalleUi>> = _detalle.asStateFlow()
     private var trabajoDetalle: Job? = null
 
+    // null = Todos
+    private val _usuarioFiltro = MutableStateFlow<Int?>(null)
+    val usuarioFiltro: StateFlow<Int?> = _usuarioFiltro.asStateFlow()
+    private var trabajoLista: Job? = null
+
     init { cargar() }
 
+    // Carga según el filtro actual: GET posts o GET posts?userId=N
     fun cargar() {
-        viewModelScope.launch {
+        trabajoLista?.cancel() // si se cambia de chip rápido, solo vale la última petición
+        trabajoLista = viewModelScope.launch {
             _lista.value = UiState.Cargando
-            repo.listar()
+            val usuario = _usuarioFiltro.value
+            val resultado = if (usuario == null) repo.listar() else repo.porUsuario(usuario)
+            resultado
                 .onSuccess { _lista.value = UiState.Exito(it) }
                 .onFailure { _lista.value = UiState.Error(mensajeDe(it)) }
         }
+    }
+
+    fun filtrar(userId: Int?) {
+        _usuarioFiltro.value = userId
+        cargar()
     }
 
     // Pide la publicación y sus comentarios a la vez; si cualquiera falla, todo el detalle es Error
