@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.tecsup.murocampus.data.PostRepository
 import com.tecsup.murocampus.data.mensajeDe
 import com.tecsup.murocampus.model.Comentario
+import com.tecsup.murocampus.model.NuevoPost
 import com.tecsup.murocampus.model.Post
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -31,6 +32,10 @@ class PostsViewModel(private val repo: PostRepository) : ViewModel() {
     private val _usuarioFiltro = MutableStateFlow<Int?>(null)
     val usuarioFiltro: StateFlow<Int?> = _usuarioFiltro.asStateFlow()
     private var trabajoLista: Job? = null
+
+    // null = todavía no se envió nada
+    private val _publicacion = MutableStateFlow<UiState<Post>?>(null)
+    val publicacion: StateFlow<UiState<Post>?> = _publicacion.asStateFlow()
 
     init { cargar() }
 
@@ -72,5 +77,20 @@ class PostsViewModel(private val repo: PostRepository) : ViewModel() {
                 onFailure = { UiState.Error(mensajeDe(it)) }
             )
         }
+    }
+
+    // POST posts con el JSON de NuevoPost en el cuerpo
+    fun publicar(titulo: String, texto: String) {
+        viewModelScope.launch {
+            _publicacion.value = UiState.Cargando
+            repo.crear(NuevoPost(userId = 1, title = titulo.trim(), body = texto.trim()))
+                .onSuccess { _publicacion.value = UiState.Exito(it) }
+                .onFailure { _publicacion.value = UiState.Error(mensajeDe(it)) }
+        }
+    }
+
+    // Al salir de la pantalla Crear se olvida el resultado anterior
+    fun limpiarPublicacion() {
+        _publicacion.value = null
     }
 }
